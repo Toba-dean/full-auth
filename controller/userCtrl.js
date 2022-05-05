@@ -1,29 +1,41 @@
 const User = require('../model/userModel');
 const CryptoJS = require('crypto-js');
 const jwt = require('jsonwebtoken');
+const sendEmail = require('./sendMail');
 
 const { CLIENT_URL, ACTIVATION_SECRET_KEY, ACCESS_SECRET_KEY, REFRESH_SECRET_KEY } = process.env;
-const sendEmail = require('./sendMail');
+
 
 
 const userCtrl = {
+  // Posting(creating) a new user
   register: async (req, res) => {
     try {
       const {name, email, password} = req.body
-      const hashPassword = CryptoJS.AES.encrypt(req.body.password, ACTIVATION_SECRET_KEY).toString();
-      const newUser = {
-        name, email, password: hashPassword
-    }
+      if(!name || !email || !password) {
+        return res.status(400).json({msg: 'Please fill in all fields.'})
+      }
+
+      const user = await User.findOne({ email })
+      if (user) {
+        return res.status(400).json({msg: 'This email already exists.'})
+      }
+
+      const hashPassword = CryptoJS.AES.encrypt(password, ACTIVATION_SECRET_KEY).toString();
+      const newUser = { name, email, password: hashPassword }
+
       const activationToken = createActivationToken(newUser);
+      
       const url = `${CLIENT_URL}/user/activate/${activationToken}`;
+      sendEmail(email, url, "Verify your email address");
 
-      sendEmail(newUser.email, url, "Verify your email address")
-
-      res.status(200).json({msg: 'Successfully registered, Plaese activate email to start.', activationToken})
+      return res.status(200).json({msg: 'Successfully registered, Plaese activate email to start.', activationToken});
     } catch (error) {
-      res.status(500).json({msg: error.message})
+      return res.status(500).json({msg: error.message})
     }
   },
+
+  // Activate new user email and save user to DB.
   activateEmail: async (req, res) => {
     try {
       const { activation_token } = req.body;
@@ -33,12 +45,10 @@ const userCtrl = {
       const getEmail = await User.findOne({email});
       if(getEmail) return res.status(400).json({msg:"This email already exists."});
 
-      const newUser = await new User({
-        name, email, password
-    }); 
-
-    await newUser.save();
-    res.json({msg: "Account has been activated!"})
+      const newUser = await new User({ name, email, password }); 
+      
+      await newUser.save();
+      res.json({msg: "Account has been activated!"})
     } catch (error) {
       res.status(500).json({msg: error.message})
     }
@@ -69,7 +79,7 @@ const userCtrl = {
         maxAge: 7*24*60*60*1000 // 7 days
       })
   
-      return res.json({msg: "Login success!", refresh_token})
+      return res.json({msg: "Login Successful", refresh_token})
   
     } catch (error) {
       res.status(500).json({msg: error.message})
@@ -77,8 +87,7 @@ const userCtrl = {
   },
   getAccessToken: async (req, res) => {
     try {
-      const rf_token = req.cookies.refreshtoken
-      console.log(rf_token);
+      const rf_token = req.cookies.refreshtoken 
       if(!rf_token) return res.status(400).json({msg: "Please login now"})
 
       jwt.verify(rf_token, process.env.REFRESH_SECRET_KEY, (err, user) => {
@@ -102,7 +111,7 @@ const userCtrl = {
       const url = `${CLIENT_URL}/user/reset/${access_token}`
 
       sendEmail(email, url, "Reset your password");
-      res.json({msg: "Re-send the password, please check your email."})
+      res.json({msg: "Reset your password, please check your email.", access_token})
     } catch (error) {
       return res.status(500).json({msg: error.message})
     }
@@ -110,13 +119,11 @@ const userCtrl = {
   resetPassword: async (req, res) => {
     try {
       const { password } = req.body;
-      const hashPassword = CryptoJS.AES.encrypt(req.body.password, ACTIVATION_SECRET_KEY).toString();
+      const hashPassword = CryptoJS.AES.encrypt(password, ACTIVATION_SECRET_KEY).toString();
 
       const { userId } = req.user
-      await User.findOneAndUpdate({userId}, {
-        password: hashPassword
-      });
-    res.json({msg: "Password successfully changed!"})
+      await User.findOneAndUpdate({userId}, { password: hashPassword });
+      res.json({msg: "Password successfully changed!"})
     } catch (error) {
       return res.status(500).json({msg: error.message})
     }
@@ -140,7 +147,7 @@ const userCtrl = {
   },
   logout: async (req, res) => {
     try {
-      res.clearCookie('refreshtoken', {path: '/user/refresh_token'});
+      res.clearCookie('refreshtoken', {path: '/api/user/refresh_token'});
       return res.json({msg: "Logged out."})
     } catch (error) {
       return res.status(500).json({msg: error.message}) 
@@ -150,14 +157,14 @@ const userCtrl = {
     try {
       const {name, avatar, password} = req.body
       const { userId } = req.user
-      const hashPassword = CryptoJS.AES.encrypt(req.body.password, ACTIVATION_SECRET_KEY).toString();
+      const hashPassword = CryptoJS.AES.encrypt(password, ACTIVATION_SECRET_KEY).toString();
 
-      await User.findOneAndUpdate({userId}, { name, avatar, password: hashPassword });
+      await User.findByIdAndUpdate({_id: userId}, { name, avatar, password: hashPassword }, { new: true, runValidators: true });
       res.json({msg: "Update Success!"})
     } catch (error) {
       return res.status(500).json({msg: error.message}) 
     }
-  },
+  }, 
   updateUserRole: async (req, res) => {
     try {
       const {
@@ -165,7 +172,7 @@ const userCtrl = {
         params: { id }
       } = req
 
-      await User.findOneAndUpdate({id}, {role})
+      await User.findOneAndUpdate({_id: id}, {role}, { new: true, runValidators: true})
       res.json({msg: "Update Success!"})
     } catch (error) {
       return res.status(500).json({msg: error.message}) 
@@ -178,34 +185,20 @@ const userCtrl = {
     } catch (error) {
       return res.status(500).json({msg: error.message}) 
     }
-  },
-  googleLogin: async (rej, res) => {
-    try {
-      
-    } catch (error) {
-      res.status(500).json({msg: error.message})
-    }
-  },
-  facebookLogin: async (rej, res) => {
-    try {
-      
-    } catch (error) {
-      res.status(500).json({msg: error.message})
-    }
   }
-};
+}; 
 
 
-const createActivationToken = (payload) => {
-  return jwt.sign(payload, process.env.ACTIVATION_SECRET_KEY, {expiresIn: '5m'}) 
+const createActivationToken = payload => {
+  return jwt.sign(payload, ACTIVATION_SECRET_KEY, {expiresIn: '5m'}) 
 }
 
-const createAccessToken = (payload) => {
-  return jwt.sign(payload, process.env.ACCESS_SECRET_KEY, {expiresIn: '15m'})
+const createAccessToken = payload => {
+  return jwt.sign(payload, ACCESS_SECRET_KEY, {expiresIn: '15m'})
 }
 
-const createRefreshToken = (payload) => {
-  return jwt.sign(payload, process.env.REFRESH_SECRET_KEY, {expiresIn: '7d'})
+const createRefreshToken = payload => {
+  return jwt.sign(payload, REFRESH_SECRET_KEY, {expiresIn: '7d'})
 }
 
 module.exports = userCtrl

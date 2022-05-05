@@ -22,7 +22,7 @@ app.use(fileUpload({
 
 
 app.use('/api/user', userRouter);
-app.use('/api/upload-avatar', uploadRouter);
+app.use('/api/upload-avatar', uploadRouter); 
 
 
 const start = async () => { 
@@ -35,5 +35,5 @@ const start = async () => {
     console.log(error.message); 
   }
 }   
- 
+     
 start()

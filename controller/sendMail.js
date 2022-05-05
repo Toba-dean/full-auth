@@ -8,7 +8,7 @@ const {
   MAILING_SERVICE_CLIENT_SECRET,
   MAILING_SERVICE_REFRESH_TOKEN,
   SENDERS_EMAIL
-} = process.env
+} = process.env 
 
 const oauth2Client = new OAuth2(
   MAILING_SERVICE_CLIENT_ID,

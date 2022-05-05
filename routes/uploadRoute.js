@@ -8,4 +8,4 @@ const uploadImage = require('../middleware/uploadImg');
 router.route('/').post(uploadImage, auth, uploadRoutes.uploadAvatar)
 
 
-module.exports = router  
+module.exports = router   

@@ -1,5 +1,4 @@
-const { default: mongoose } = require("mongoose");
-const jwt = require('jsonwebtoken');
+const mongoose = require("mongoose"); 
 
 const userSchema = new mongoose.Schema({
   name: {
@@ -16,11 +15,13 @@ const userSchema = new mongoose.Schema({
       'Please provide a valid email',
     ],
     unique: true,
+    trim: true
   },
   password: {
     type: String,
     required: [true, 'Please provide password'],
     minlength: 6,
+    trim: true
   },
   role: {
     type: Number,
@@ -28,7 +29,7 @@ const userSchema = new mongoose.Schema({
   }, 
   avatar: {
     type: String,
-    default: 'https://pixabay.com/vectors/avatar-icon-placeholder-facebook-1577909/'
+    default: 'https://cdn.pixabay.com/photo/2016/08/08/09/17/avatar-1577909_960_720.png'
   }
 }, { timestamps: true });
 

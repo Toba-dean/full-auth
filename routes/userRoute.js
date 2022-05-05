@@ -5,7 +5,7 @@ const auth = require('../middleware/auth');
 const authAdmin = require('../middleware/authAdmin');
 
 
-const { register, activateEmail, login, getAccessToken, forgetPassword, resetPassword, getUserInfo, getAllUsersInfo, logout, updateUser, updateUserRole, deleteUser, googleLogin, facebookLogin } = userRoutes;
+const { register, activateEmail, login, getAccessToken, forgetPassword, resetPassword, getUserInfo, getAllUsersInfo, logout, updateUser, updateUserRole, deleteUser } = userRoutes;
 
 router.route('/register').post(register);
 router.route('/activate').post(activateEmail);
@@ -19,12 +19,6 @@ router.route('/logout').get(logout);
 router.route('/update').patch(auth, updateUser);
 router.route('/update-role/:id').patch(auth, authAdmin, updateUserRole);
 router.route('/delete/:id').delete(auth, authAdmin, deleteUser);
-
-
-// Social Login
-router.route('/google-login').post(googleLogin)
-router.route('/facebook-login').post(facebookLogin)
-
 
 
 module.exports = router  

@@ -26,7 +26,7 @@ const uploadCtrl = {
     }
   }
 
-}
+} 
 
 const removeTmp = path => {
   fs.unlink(path, err => {
